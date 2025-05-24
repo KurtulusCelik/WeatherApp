@@ -64,12 +64,12 @@ export default function TabLayout() {
       />
       
       <Tabs.Screen
-        name="explore"
+        name="search"
         options={{
-          title: 'Forecast',
+          title: 'Search',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons 
-              name={focused ? 'calendar' : 'calendar-outline'} 
+              name={'search'} 
               size={24} 
               color={color}  
             />

@@ -17,10 +17,9 @@ import {
 const { width, height } = Dimensions.get('window');
 
 export default function HomeScreen() {
-
   const [isCelsius, setIsCelsius] = useState(false);
+  const [fontsLoaded, setFontsLoaded] = useState(false);
   
-  // Animation values for floating circles and pulse effects
   const pulse1 = useRef(new Animated.Value(0.8)).current; 
   const pulse2 = useRef(new Animated.Value(0.6)).current; 
   const pulse3 = useRef(new Animated.Value(0.9)).current; 
@@ -122,11 +121,11 @@ export default function HomeScreen() {
   });
   
   const weeklyData = [
-    { day: 'Today', icon: 'cloud', condition: 'Partly Cloudy', precipitation: '10%', highF: 75, lowF: 58 },
-    { day: 'Tue', icon: 'sunny', condition: 'Sunny', precipitation: '0%', highF: 78, lowF: 62 },
-    { day: 'Wed', icon: 'rainy', condition: 'Rainy', precipitation: '80%', highF: 73, lowF: 59 },
-    { day: 'Thu', icon: 'cloud', condition: 'Cloudy', precipitation: '20%', highF: 71, lowF: 57 },
-    { day: 'Fri', icon: 'sunny', condition: 'Sunny', precipitation: '5%', highF: 76, lowF: 61 },
+    { day: 'Today', icon: 'cloud', condition: 'Partly Cloudy', highF: 75, lowF: 58 },
+    { day: 'Tue', icon: 'sunny', condition: 'Sunny',  highF: 78, lowF: 62 },
+    { day: 'Wed', icon: 'rainy', condition: 'Rainy', highF: 73, lowF: 59 },
+    { day: 'Thu', icon: 'cloud', condition: 'Cloudy', highF: 71, lowF: 57 },
+    { day: 'Fri', icon: 'sunny', condition: 'Sunny', highF: 76, lowF: 61 },
   ];
 
   const getWeatherIcon = (iconType: string, size: number = 24) => {
@@ -273,7 +272,13 @@ export default function HomeScreen() {
 
           {/* 5-day weather forecast section */}
           <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>5-Day Forecast</Text>
+            <View style={styles.sectionTitleContainer}>
+              <Text style={styles.sectionTitle}>5-Day Forecast</Text>
+              <View style={styles.tempLabels}>
+                <Text style={styles.tempLabel}>High</Text>
+                <Text style={styles.tempLabel}>Low</Text>
+              </View>
+            </View>
             <BlurView intensity={20} style={styles.weeklyContainer}>
               <View style={styles.weeklyOverlay}>
                 {weeklyData.map((day, index) => (
@@ -281,7 +286,6 @@ export default function HomeScreen() {
                     <Text style={styles.weeklyDay}>{day.day}</Text>
                     {getWeatherIcon(day.icon, 24)}
                     <Text style={styles.weeklyCondition}>{day.condition}</Text>
-                    <Text style={styles.weeklyPrecipitation}>{day.precipitation}</Text>
                     <View style={styles.weeklyTemps}>
                       <Text style={styles.weeklyHigh}>{formatTemperature(day.highF)}</Text>
                       <Text style={styles.weeklyLow}>{formatTemperature(day.lowF)}</Text>
@@ -360,6 +364,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
     marginBottom: 20,
+    fontFamily: 'PoetsenOne-Regular',
   },
   dateTimeContainer: {
     position: 'absolute',
@@ -473,11 +478,26 @@ const styles = StyleSheet.create({
   sectionContainer: {
     marginBottom: 30,
   },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: 'white',
-    marginBottom: 15,
+  },
+  tempLabels: {
+    flexDirection: 'row',
+    gap: 10,
+    marginRight: 17,
+    marginTop: 10,
+  },
+  tempLabel: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
   },
   weeklyContainer: {
     borderRadius: 20,
@@ -500,18 +520,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'white',
     fontWeight: '500',
+    marginRight: 15,
   },
   weeklyCondition: {
     flex: 1,
     fontSize: 14,
     color: 'rgba(255,255,255,0.8)',
     marginLeft: 15,
-  },
-  weeklyPrecipitation: {
-    width: 40,
-    fontSize: 14,
-    color: '#87CEEB',
-    textAlign: 'center',
   },
   weeklyTemps: {
     flexDirection: 'row',
