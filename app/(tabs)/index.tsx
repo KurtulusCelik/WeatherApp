@@ -14,12 +14,14 @@ import {
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 
-
+// Main screen to display weather information
 export default function HomeScreen() {
+  // State for temperature unit (Celsius or Fahrenheit)
   const [isCelsius, setIsCelsius] = useState(true);
+  // Access theme context for dark mode and toggling
   const { isDark, toggleTheme } = useTheme();
 
-  // Define weather data type
+  // Define the structure for current weather data
   type WeatherData = {
     city: string;
     country: string;
@@ -32,26 +34,31 @@ export default function HomeScreen() {
     pressure: number;
   };
 
-  // Get weather param from router
+  // Get weather data passed as a route parameter
   const { weather } = useLocalSearchParams();
+  // State to hold the parsed weather data
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
 
+  // Define the structure for a single forecast item
   type ForecastItem = {
     date: string;
     min: number;
     max: number;
     condition: string;
-    icon: string;
+    icon: string; // Note: Icon was in type but not used in original forecast data processing for display
   };
 
+  // State to hold the parsed forecast data
   const [forecastData, setForecastData] = useState<ForecastItem[]>([]);
 
-  // Simulate passing forecast as a param for now
+  // Get forecast data passed as a route parameter
   const { forecast } = useLocalSearchParams();
 
+  // Effect to parse forecast data when it changes
   useEffect(() => {
     if (forecast) {
       try {
+        // Parse forecast data (can be string or already an object)
         const parsed = typeof forecast === 'string' ? JSON.parse(forecast) : forecast;
         setForecastData(parsed);
       } catch (e) {
@@ -60,9 +67,11 @@ export default function HomeScreen() {
     }
   }, [forecast]);
 
+  // Effect to parse current weather data when it changes
   useEffect(() => {
     if (weather) {
       try {
+        // Parse weather data (can be string or already an object)
         const parsed = typeof weather === 'string' ? JSON.parse(weather) : weather;
         setWeatherData(parsed);
       } catch (e) {
@@ -71,11 +80,12 @@ export default function HomeScreen() {
     }
   }, [weather]);
 
-  // Temperature conversion and formatting functions
+  // Converts Celsius to Fahrenheit
   const celsiusToFahrenheit = (celsius: number): number => {
     return Math.round((celsius * 9/5) + 32);
   };
 
+  // Formats temperature display based on the selected unit (C or F)
   const formatTemperature = (celsiusValue: number): string => {
     if (!isCelsius) {
       return `${celsiusToFahrenheit(celsiusValue)}°`;
@@ -83,10 +93,12 @@ export default function HomeScreen() {
     return `${(celsiusValue)}°`;
   };
 
+  // Toggles the temperature unit between Celsius and Fahrenheit
   const toggleTemperatureUnit = () => {
     setIsCelsius(!isCelsius);
   };
 
+  // Gets theme-specific colors for UI elements
   const getThemeColors = () => {
     if (isDark) {
       return {
@@ -106,8 +118,9 @@ export default function HomeScreen() {
     };
   };
 
-  const theme = getThemeColors();
+  const theme = getThemeColors(); // Apply theme colors
   
+  // Get current time and date for display
   const currentTime = new Date();
   
   const timeString = currentTime.toLocaleTimeString('en-US', {
@@ -122,11 +135,15 @@ export default function HomeScreen() {
     day: 'numeric'
   });
   
+  // Use forecastData directly for the weekly display
   const weeklyData = forecastData;
 
-  const getWeatherIcon = (condition: string, size: number = 24) => {
+  // Returns an Ionicons component based on the weather condition string
+  const getWeatherIcon = (condition: string | undefined, size: number = 24) => {
     const iconColor = theme.icon;
-    switch (condition) {
+    // Use a default condition like 'clear' if the provided condition is undefined or empty
+    const currentCondition = condition?.toLowerCase() || 'clear'; 
+    switch (currentCondition) {
       case 'clear':
         return <Ionicons name="sunny" size={size} color={iconColor} />;
       case 'clouds':
@@ -142,6 +159,7 @@ export default function HomeScreen() {
       case 'fog':
         return <Ionicons name="partly-sunny" size={size} color={iconColor} />;
       default:
+        // Default icon if condition is unknown or not handled
         return <Ionicons name="sunny" size={size} color={iconColor} />;
     }
   };
@@ -182,7 +200,9 @@ export default function HomeScreen() {
 
           <View style={styles.locationContainer}>
             <Ionicons name="location" size={30} color={theme.icon} />
-            <Text style={[styles.location, { color: theme.text }]}>{weatherData?.city}, {weatherData?.country}</Text>
+            <Text style={[styles.location, { color: theme.text }]}>
+              {weatherData?.city}, {weatherData?.country}
+            </Text>
           </View>
 
           <BlurView intensity={20} style={[styles.mainWeatherCard, { backgroundColor: theme.card }]}>
@@ -200,14 +220,18 @@ export default function HomeScreen() {
               </TouchableOpacity>
 
               <View style={styles.temperatureContainer}>
-                <Text style={[styles.temperature, { color: theme.text }]}>{formatTemperature(weatherData?.temperature ?? 0)}</Text>
+                <Text style={[styles.temperature, { color: theme.text }]}>
+                  {formatTemperature(weatherData?.temperature ?? 0)}
+                </Text>
                 <View style={styles.weatherIcon}>
-                  {getWeatherIcon(weatherData?.condition?.toLowerCase() ?? "clear", 80)}
+                  {getWeatherIcon(weatherData?.condition, 80)}
                 </View>
               </View>
               
               <Text style={[styles.condition, { color: theme.text }]}>{weatherData?.condition}</Text>
-              <Text style={[styles.feelsLike, { color: theme.textSecondary }]}>Feels like {formatTemperature(weatherData?.feelsLike ?? 0)}</Text>
+              <Text style={[styles.feelsLike, { color: theme.textSecondary }]}>
+                Feels like {formatTemperature(weatherData?.feelsLike ?? 0)}
+              </Text>
 
               <View style={styles.detailsGrid}>
                 <BlurView intensity={10} style={[styles.detailItem, { backgroundColor: theme.card }]}>
@@ -255,7 +279,7 @@ export default function HomeScreen() {
                 {weeklyData.map((day, index) => (
                   <View key={index} style={[styles.weeklyItem, { borderBottomColor: theme.textSecondary }]}>
                     <Text style={[styles.weeklyDay, { color: theme.text }]}>{new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}</Text>
-                    {getWeatherIcon(day.condition?.toLowerCase() ?? 'clear', 24)}
+                    {getWeatherIcon(day.condition, 24)}
                     <Text style={[styles.weeklyCondition, { color: theme.textSecondary }]}>{day.condition}</Text>
                     <View style={styles.weeklyTemps}>
                       <Text style={[styles.weeklyHigh, { color: theme.text }]}>{formatTemperature(day.max)}</Text>
