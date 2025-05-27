@@ -1,10 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useRef, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  Animated,
-  Dimensions,
   Platform,
   ScrollView,
   StatusBar,
@@ -13,98 +12,101 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
 
-const { width, height } = Dimensions.get('window');
 
 export default function HomeScreen() {
-  const [isCelsius, setIsCelsius] = useState(false);
-  const [fontsLoaded, setFontsLoaded] = useState(false);
-  
-  const pulse1 = useRef(new Animated.Value(0.8)).current; 
-  const pulse2 = useRef(new Animated.Value(0.6)).current; 
-  const pulse3 = useRef(new Animated.Value(0.9)).current; 
-  const float1 = useRef(new Animated.Value(0)).current;  
-  const float2 = useRef(new Animated.Value(0)).current;  
+  const [isCelsius, setIsCelsius] = useState(true);
+  const { isDark, toggleTheme } = useTheme();
+
+  // Define weather data type
+  type WeatherData = {
+    city: string;
+    country: string;
+    temperature: number;
+    condition: string;
+    feelsLike: number;
+    humidity: number;
+    windSpeed: number;
+    visibility: number;
+    pressure: number;
+  };
+
+  // Get weather param from router
+  const { weather } = useLocalSearchParams();
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+
+  type ForecastItem = {
+    date: string;
+    min: number;
+    max: number;
+    condition: string;
+    icon: string;
+  };
+
+  const [forecastData, setForecastData] = useState<ForecastItem[]>([]);
+
+  // Simulate passing forecast as a param for now
+  const { forecast } = useLocalSearchParams();
+
+  useEffect(() => {
+    if (forecast) {
+      try {
+        const parsed = typeof forecast === 'string' ? JSON.parse(forecast) : forecast;
+        setForecastData(parsed);
+      } catch (e) {
+        console.error('Invalid forecast format', e);
+      }
+    }
+  }, [forecast]);
+
+  useEffect(() => {
+    if (weather) {
+      try {
+        const parsed = typeof weather === 'string' ? JSON.parse(weather) : weather;
+        setWeatherData(parsed);
+      } catch (e) {
+        console.error('Invalid weather data format', e);
+      }
+    }
+  }, [weather]);
 
   // Temperature conversion and formatting functions
-  const fahrenheitToCelsius = (fahrenheit: number): number => {
-    return Math.round((fahrenheit - 32) * 5/9);
+  const celsiusToFahrenheit = (celsius: number): number => {
+    return Math.round((celsius * 9/5) + 32);
   };
 
-  const formatTemperature = (fahrenheitValue: number): string => {
-    if (isCelsius) {
-      return `${fahrenheitToCelsius(fahrenheitValue)}°`;
+  const formatTemperature = (celsiusValue: number): string => {
+    if (!isCelsius) {
+      return `${celsiusToFahrenheit(celsiusValue)}°`;
     }
-    return `${fahrenheitValue}°`;
-  };
-
-  const getTemperatureUnit = (): string => {
-    return isCelsius ? 'C' : 'F';
+    return `${(celsiusValue)}°`;
   };
 
   const toggleTemperatureUnit = () => {
     setIsCelsius(!isCelsius);
   };
-  
-  useEffect(() => {
-    // Create continuous pulse animation for background elements
-    const createPulseAnimation = (animatedValue: Animated.Value, duration: number) => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.timing(animatedValue, {
-            toValue: 1.2,      
-            duration: duration,
-            useNativeDriver: true, 
-          }),
-          Animated.timing(animatedValue, {
-            toValue: 0.8,      
-            duration: duration,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-    };
 
-    // Create floating animation for background elements
-    const createFloatAnimation = (animatedValue: Animated.Value, distance: number, duration: number) => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.timing(animatedValue, {
-            toValue: distance,   
-            duration: duration,
-            useNativeDriver: true,
-          }),
-          Animated.timing(animatedValue, {
-            toValue: -distance,  
-            duration: duration,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-    };
-
-    createPulseAnimation(pulse1, 3000).start(); 
-    createPulseAnimation(pulse2, 4000).start(); 
-    createPulseAnimation(pulse3, 5000).start(); 
-    createFloatAnimation(float1, 20, 6000).start(); 
-    createFloatAnimation(float2, 15, 8000).start(); 
-  }, []);
-
-  const getDynamicGradient = () => {
-    // Returns different gradient colors based on time of day
-    const hour = new Date().getHours();
-    
-    if (hour >= 6 && hour < 12) {
-      return ['rgba(255, 154, 86, 0.9)', 'rgba(255, 206, 86, 0.9)', 'rgba(255, 107, 157, 0.9)'];
-    } else if (hour >= 12 && hour < 18) {
-      return ['rgba(37, 99, 235, 0.9)', 'rgba(56, 189, 248, 0.9)', 'rgba(252, 211, 77, 0.9)'];
-    } else if (hour >= 18 && hour < 21) {
-      return ['rgba(250, 112, 154, 0.9)', 'rgba(254, 225, 64, 0.9)', 'rgba(250, 139, 255, 0.9)'];
-    } else {
-      return ['rgba(30, 58, 138, 0.9)', 'rgba(49, 46, 129, 0.9)', 'rgba(88, 28, 135, 0.9)'];
+  const getThemeColors = () => {
+    if (isDark) {
+      return {
+        background: ['#1a1a1a', '#2d2d2d'] as const,
+        card: 'rgba(255,255,255,0.1)',
+        text: 'white',
+        textSecondary: 'rgba(255,255,255,0.7)',
+        icon: 'rgba(255,255,255,0.7)'
+      };
     }
+    return {
+      background: ['#f5f5f5', '#ffffff'] as const,
+      card: 'rgba(0,0,0,0.05)',
+      text: '#1a1a1a',
+      textSecondary: 'rgba(0,0,0,0.7)',
+      icon: 'rgba(0,0,0,0.7)'
+    };
   };
 
+  const theme = getThemeColors();
   
   const currentTime = new Date();
   
@@ -120,175 +122,144 @@ export default function HomeScreen() {
     day: 'numeric'
   });
   
-  const weeklyData = [
-    { day: 'Today', icon: 'cloud', condition: 'Partly Cloudy', highF: 75, lowF: 58 },
-    { day: 'Tue', icon: 'sunny', condition: 'Sunny',  highF: 78, lowF: 62 },
-    { day: 'Wed', icon: 'rainy', condition: 'Rainy', highF: 73, lowF: 59 },
-    { day: 'Thu', icon: 'cloud', condition: 'Cloudy', highF: 71, lowF: 57 },
-    { day: 'Fri', icon: 'sunny', condition: 'Sunny', highF: 76, lowF: 61 },
-  ];
+  const weeklyData = forecastData;
 
-  const getWeatherIcon = (iconType: string, size: number = 24) => {
-    // Maps weather conditions to Ionicons
-    const iconColor = "rgba(255,255,255,0.9)"; 
-    
-    switch (iconType) {
-      case 'sunny':
+  const getWeatherIcon = (condition: string, size: number = 24) => {
+    const iconColor = theme.icon;
+    switch (condition) {
+      case 'clear':
         return <Ionicons name="sunny" size={size} color={iconColor} />;
-      case 'cloud':
+      case 'clouds':
         return <Ionicons name="cloud" size={size} color={iconColor} />;
-      case 'rainy':
+      case 'rain':
+      case 'drizzle':
         return <Ionicons name="rainy" size={size} color={iconColor} />;
+      case 'thunderstorm':
+        return <Ionicons name="thunderstorm" size={size} color={iconColor} />;
+      case 'snow':
+        return <Ionicons name="snow" size={size} color={iconColor} />;
+      case 'mist':
+      case 'fog':
+        return <Ionicons name="partly-sunny" size={size} color={iconColor} />;
       default:
         return <Ionicons name="sunny" size={size} color={iconColor} />;
     }
   };
 
-  
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      {/* Dynamic gradient background that changes with time of day */}
+    <View style={[styles.container, { backgroundColor: theme.background[0] }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <LinearGradient
-        colors={getDynamicGradient() as any}
+        colors={theme.background}
         style={styles.gradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        {/* Animated floating circles in the background */}
-        <View style={styles.backgroundContainer}>
-          <Animated.View 
-            style={[
-              styles.floatingCircle1,
-              {
-                transform: [
-                  { scale: pulse1 },
-                  { translateY: float1 }
-                ]
-              }
-            ]}
-          />
-          <Animated.View 
-            style={[
-              styles.floatingCircle2,
-              {
-                transform: [
-                  { scale: pulse2 },
-                  { translateX: float2 }
-                ]
-              }
-            ]}
-          />
-          <Animated.View 
-            style={[
-              styles.floatingCircle3,
-              {
-                transform: [
-                  { scale: pulse3 },
-                  { translateY: float1 },
-                  { translateX: float2 }
-                ]
-              }
-            ]}
-          />
-        </View>
-
         <ScrollView 
           style={styles.scrollView} 
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
           <View style={styles.header}>
-            <Text style={styles.title}>izadist Weather App</Text>
+            <View style={styles.headerTop}>
+              <Text style={[styles.title, { color: theme.text }]}>izadist Weather App</Text>
+              <TouchableOpacity 
+                style={styles.themeToggle}
+                onPress={toggleTheme}
+              >
+                <Ionicons 
+                  name={isDark ? "sunny" : "moon"} 
+                  size={24} 
+                  color={theme.text} 
+                />
+              </TouchableOpacity>
+            </View>
             <View style={styles.dateTimeContainer}>
-              <Text style={styles.dateTime}>{dateString}</Text>
-              <Text style={styles.time}>{timeString}</Text>
+              <Text style={[styles.dateTime, { color: theme.textSecondary }]}>{dateString}</Text>
+              <Text style={[styles.time, { color: theme.textSecondary }]}>{timeString}</Text>
             </View>
           </View>
 
           <View style={styles.locationContainer}>
-            <Ionicons name="location" size={30} color="rgba(255,255,255,0.8)" />
-            <Text style={styles.location}>Izmir, Turkey</Text>
+            <Ionicons name="location" size={30} color={theme.icon} />
+            <Text style={[styles.location, { color: theme.text }]}>{weatherData?.city}, {weatherData?.country}</Text>
           </View>
 
-          {/* Main weather information card with blur effect */}
-          <BlurView intensity={20} style={styles.mainWeatherCard}>
+          <BlurView intensity={20} style={[styles.mainWeatherCard, { backgroundColor: theme.card }]}>
             <View style={styles.cardOverlay}>
               <TouchableOpacity 
                 style={styles.temperatureToggle}
                 onPress={toggleTemperatureUnit}
                 activeOpacity={0.7}
               >
-                <BlurView intensity={15} style={styles.toggleBlur}>
-                  <Text style={[styles.toggleText, !isCelsius && styles.activeToggle]}>°F</Text>
-                  <Text style={styles.toggleSeparator}>|</Text>
-                  <Text style={[styles.toggleText, isCelsius && styles.activeToggle]}>°C</Text>
+                <BlurView intensity={15} style={[styles.toggleBlur, { backgroundColor: theme.card }]}>
+                  <Text style={[styles.toggleText, !isCelsius && styles.activeToggle, { color: theme.text }]}>°F</Text>
+                  <Text style={[styles.toggleSeparator, { color: theme.textSecondary }]}>|</Text>
+                  <Text style={[styles.toggleText, isCelsius && styles.activeToggle, { color: theme.text }]}>°C</Text>
                 </BlurView>
               </TouchableOpacity>
 
               <View style={styles.temperatureContainer}>
-                <Text style={styles.temperature}>{formatTemperature(72)}</Text>
+                <Text style={[styles.temperature, { color: theme.text }]}>{formatTemperature(weatherData?.temperature ?? 0)}</Text>
                 <View style={styles.weatherIcon}>
-                  <Ionicons name="cloud" size={80} color="rgba(255,255,255,0.9)" />
+                  {getWeatherIcon(weatherData?.condition?.toLowerCase() ?? "clear", 80)}
                 </View>
               </View>
               
-              <Text style={styles.condition}>Partly Cloudy</Text>
-              <Text style={styles.feelsLike}>Feels like {formatTemperature(75)}</Text>
+              <Text style={[styles.condition, { color: theme.text }]}>{weatherData?.condition}</Text>
+              <Text style={[styles.feelsLike, { color: theme.textSecondary }]}>Feels like {formatTemperature(weatherData?.feelsLike ?? 0)}</Text>
 
-              {/* Weather details grid showing wind, humidity, etc. */}
               <View style={styles.detailsGrid}>
-                <BlurView intensity={10} style={styles.detailItem}>
+                <BlurView intensity={10} style={[styles.detailItem, { backgroundColor: theme.card }]}>
                   <View style={styles.detailContent}>
-                    <Ionicons name="flag" size={20} color="rgba(255,255,255,0.7)" />
-                    <Text style={styles.detailLabel}>WIND</Text>
-                    <Text style={styles.detailValue}>12 mph</Text>
+                    <Ionicons name="flag" size={20} color={theme.icon} />
+                    <Text style={[styles.detailLabel, { color: theme.textSecondary }]}>WIND</Text>
+                    <Text style={[styles.detailValue, { color: theme.text }]}>{weatherData?.windSpeed ?? 0} m/s</Text>
                   </View>
                 </BlurView>
-                <BlurView intensity={10} style={styles.detailItem}>
+                <BlurView intensity={10} style={[styles.detailItem, { backgroundColor: theme.card }]}>
                   <View style={styles.detailContent}>
-                    <Ionicons name="water" size={20} color="rgba(255,255,255,0.7)" />
-                    <Text style={styles.detailLabel}>HUMIDITY</Text>
-                    <Text style={styles.detailValue}>65%</Text>
+                    <Ionicons name="water" size={20} color={theme.icon} />
+                    <Text style={[styles.detailLabel, { color: theme.textSecondary }]}>HUMIDITY</Text>
+                    <Text style={[styles.detailValue, { color: theme.text }]}>{weatherData?.humidity ?? 0}%</Text>
                   </View>
                 </BlurView>
-                <BlurView intensity={10} style={styles.detailItem}>
+                <BlurView intensity={10} style={[styles.detailItem, { backgroundColor: theme.card }]}>
                   <View style={styles.detailContent}>
-                    <Ionicons name="eye" size={20} color="rgba(255,255,255,0.7)" />
-                    <Text style={styles.detailLabel}>VISIBILITY</Text>
-                    <Text style={styles.detailValue}>10 mi</Text>
+                    <Ionicons name="eye" size={20} color={theme.icon} />
+                    <Text style={[styles.detailLabel, { color: theme.textSecondary }]}>VISIBILITY</Text>
+                    <Text style={[styles.detailValue, { color: theme.text }]}>{weatherData?.visibility ?? 0} m</Text>
                   </View>
                 </BlurView>
-                <BlurView intensity={10} style={styles.detailItem}>
+                <BlurView intensity={10} style={[styles.detailItem, { backgroundColor: theme.card }]}>
                   <View style={styles.detailContent}>
-                    <Ionicons name="sunny" size={20} color="rgba(255,255,255,0.7)" />
-                    <Text style={styles.detailLabel}>UV INDEX</Text>
-                    <Text style={styles.detailValue}>6</Text>
+                    <Ionicons name="speedometer" size={20} color={theme.icon} />
+                    <Text style={[styles.detailLabel, { color: theme.textSecondary }]}>PRESSURE</Text>
+                    <Text style={[styles.detailValue, { color: theme.text }]}>{weatherData?.pressure ?? 0} hPa</Text>
                   </View>
                 </BlurView>
               </View>
             </View>
           </BlurView>
 
-          {/* 5-day weather forecast section */}
           <View style={styles.sectionContainer}>
             <View style={styles.sectionTitleContainer}>
-              <Text style={styles.sectionTitle}>5-Day Forecast</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>5-Day Forecast</Text>
               <View style={styles.tempLabels}>
-                <Text style={styles.tempLabel}>High</Text>
-                <Text style={styles.tempLabel}>Low</Text>
+                <Text style={[styles.tempLabel, { color: theme.textSecondary }]}>High</Text>
+                <Text style={[styles.tempLabel, { color: theme.textSecondary }]}>Low</Text>
               </View>
             </View>
-            <BlurView intensity={20} style={styles.weeklyContainer}>
+            <BlurView intensity={20} style={[styles.weeklyContainer, { backgroundColor: theme.card }]}>
               <View style={styles.weeklyOverlay}>
                 {weeklyData.map((day, index) => (
-                  <View key={index} style={styles.weeklyItem}>
-                    <Text style={styles.weeklyDay}>{day.day}</Text>
-                    {getWeatherIcon(day.icon, 24)}
-                    <Text style={styles.weeklyCondition}>{day.condition}</Text>
+                  <View key={index} style={[styles.weeklyItem, { borderBottomColor: theme.textSecondary }]}>
+                    <Text style={[styles.weeklyDay, { color: theme.text }]}>{new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}</Text>
+                    {getWeatherIcon(day.condition?.toLowerCase() ?? 'clear', 24)}
+                    <Text style={[styles.weeklyCondition, { color: theme.textSecondary }]}>{day.condition}</Text>
                     <View style={styles.weeklyTemps}>
-                      <Text style={styles.weeklyHigh}>{formatTemperature(day.highF)}</Text>
-                      <Text style={styles.weeklyLow}>{formatTemperature(day.lowF)}</Text>
+                      <Text style={[styles.weeklyHigh, { color: theme.text }]}>{formatTemperature(day.max)}</Text>
+                      <Text style={[styles.weeklyLow, { color: theme.textSecondary }]}>{formatTemperature(day.min)}</Text>
                     </View>
                   </View>
                 ))}
@@ -308,46 +279,9 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
-  backgroundContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    overflow: 'hidden',
-  },
-  floatingCircle1: {
-    position: 'absolute',
-    top: 80,
-    left: 40,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  floatingCircle2: {
-    position: 'absolute',
-    bottom: 150,
-    right: 60,
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  floatingCircle3: {
-    position: 'absolute',
-    top: height * 0.5,
-    left: width * 0.3,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
   scrollView: {
     flex: 1,
     paddingHorizontal: 20,
-    position: 'relative',
-    zIndex: 10,
   },
   scrollContent: {
     paddingBottom: Platform.select({
@@ -359,10 +293,15 @@ const styles = StyleSheet.create({
     marginTop: 60,
     marginBottom: 10,
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: 'white',
     marginBottom: 20,
     fontFamily: 'PoetsenOne-Regular',
   },
@@ -381,28 +320,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: 'rgba(255,255,255)',
   },
   toggleText: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
     fontWeight: '600',
   },
   activeToggle: {
-    color: 'rgba(255,255,255,1)',
+    opacity: 1,
   },
   toggleSeparator: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.4)',
     marginHorizontal: 8,
   },
   dateTime: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
   },
   time: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
   },
   locationContainer: {
     flexDirection: 'row',
@@ -412,7 +346,6 @@ const styles = StyleSheet.create({
   location: {
     fontSize: 20,
     fontWeight: '400',
-    color: 'rgba(255,255,255,0.8)',
     marginLeft: 5,
   },
   mainWeatherCard: {
@@ -421,7 +354,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardOverlay: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
     padding: 20,
   },
   temperatureContainer: {
@@ -433,19 +365,16 @@ const styles = StyleSheet.create({
   temperature: {
     fontSize: 72,
     fontWeight: '200',
-    color: 'white',
   },
   weatherIcon: {
     alignItems: 'center',
   },
   condition: {
     fontSize: 24,
-    color: 'rgba(255,255,255,0.9)',
     marginBottom: 5,
   },
   feelsLike: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.7)',
     marginBottom: 30,
   },
   detailsGrid: {
@@ -460,20 +389,17 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   detailContent: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
     padding: 15,
     alignItems: 'flex-start',
   },
   detailLabel: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
     marginTop: 5,
     marginBottom: 5,
   },
   detailValue: {
     fontSize: 20,
     fontWeight: '600',
-    color: 'white',
   },
   sectionContainer: {
     marginBottom: 30,
@@ -487,7 +413,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: 'white',
   },
   tempLabels: {
     flexDirection: 'row',
@@ -497,14 +422,12 @@ const styles = StyleSheet.create({
   },
   tempLabel: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
   },
   weeklyContainer: {
     borderRadius: 20,
     overflow: 'hidden',
   },
   weeklyOverlay: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
     padding: 5,
   },
   weeklyItem: {
@@ -512,20 +435,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
     minHeight: 50,
   },
   weeklyDay: {
     width: 50,
     fontSize: 16,
-    color: 'white',
     fontWeight: '500',
     marginRight: 15,
   },
   weeklyCondition: {
     flex: 1,
     fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
     marginLeft: 15,
   },
   weeklyTemps: {
@@ -536,12 +456,14 @@ const styles = StyleSheet.create({
   },
   weeklyHigh: {
     fontSize: 16,
-    color: 'white',
     fontWeight: '600',
     marginRight: 10,
   },
   weeklyLow: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.6)',
+  },
+  themeToggle: {
+    padding: 8,
+    borderRadius: 20,
   },
 });
